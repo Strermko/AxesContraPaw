@@ -17,12 +17,22 @@ public class ThirdPersonController : MonoBehaviour
     [SerializeField]
     private float jumpForce = 5f;
     [SerializeField]
+    private float fallForce = 2.5f;
+    [SerializeField]
     private float maxSpeed = 5f;
+    [SerializeField]
+    private float minimunInputValue = 0.35f;
     private Vector3 forceDirection = Vector3.zero;
 
     [Header("Camera reference")]
     [SerializeField]
     private Camera playerCamera;
+
+    [Header("Ground check atributes")]
+    [SerializeField]
+    private Transform groundedChildTransform;
+    [SerializeField]
+    private LayerMask groundLayer;
 
     private void Awake()
     {
@@ -47,22 +57,32 @@ public class ThirdPersonController : MonoBehaviour
     {
         Move();
         LookAt();
+        GravityBoost();
     }
 
     private void Move()
     {
-        forceDirection += move.ReadValue<Vector2>().x * GetCameraRight(playerCamera) * movementForce;
-        forceDirection += move.ReadValue<Vector2>().y * GetCameraForward(playerCamera) * movementForce;
+        //Basic movement, based on input
+        if (move.ReadValue<Vector2>().magnitude > minimunInputValue)
+        {
+            forceDirection += move.ReadValue<Vector2>().x * GetCameraRight(playerCamera) * movementForce;
+            forceDirection += move.ReadValue<Vector2>().y * GetCameraForward(playerCamera) * movementForce;
+        }
 
         _rigidBody.AddForce(forceDirection, ForceMode.Impulse);
         forceDirection = Vector3.zero;
 
-        if (_rigidBody.velocity.y < 0f) _rigidBody.velocity -= Vector3.down * Physics.gravity.y * Time.fixedDeltaTime;
-
+        //Prevent infinity speed
         Vector3 horizontalVelocity = _rigidBody.velocity;
         horizontalVelocity.y = 0;
         if (horizontalVelocity.sqrMagnitude > Math.Pow(maxSpeed, 2))
             _rigidBody.velocity = horizontalVelocity.normalized * maxSpeed + Vector3.up * _rigidBody.velocity.y;
+
+    }
+
+    private void GravityBoost()
+    {
+        if (_rigidBody.velocity.y < -1f && !IsGrounded()) _rigidBody.velocity += Vector3.up * Physics.gravity.y * (fallForce - 1) * Time.fixedDeltaTime;
     }
 
     private void LookAt()
@@ -96,13 +116,6 @@ public class ThirdPersonController : MonoBehaviour
 
     private bool IsGrounded()
     {
-        Ray ray = new(transform.position + Vector3.up * 0.25f, Vector3.down);
-        if (Physics.Raycast(ray, out RaycastHit hit, 0.3f))
-        {
-            Debug.Log(hit.collider);
-            return true;
-        }
-        Debug.Log(hit.collider);
-        return false;
+        return Physics.CheckSphere(groundedChildTransform.position, 0.1f, groundLayer);
     }
 }
