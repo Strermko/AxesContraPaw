@@ -9,19 +9,19 @@ namespace match
 {
     public class DeathMatchController : SerializedMonoBehaviour
     {
-        [SerializeField] private long initialTime;
+        [SerializeField] private float initialTime;
         [SerializeField] private List<Team> teams;
         [SerializeField] private int maxPoints;
+        [SerializeField] private Timer timer;
         private DeathMatchState _state;
         private IRoundController _roundController;
 
         private void Awake()
         {
-            _roundController = new DeathMatchRoundController(HandleRoundWon);
+            
             _state = new DeathMatchState
             {
-                TeamScores = new Dictionary<Team, int>(),
-                TimeLeft = initialTime
+                TeamScores = new Dictionary<Team, int>()
             };
             foreach (var team in teams)
             {
@@ -45,6 +45,13 @@ namespace match
             {
                 Debug.LogError("INITIAL TIME NOT SET !");
             }
+
+            if (timer == null)
+            {
+                Debug.LogError("TIMER NOT SET !");
+            }
+            
+            _roundController = new DeathMatchRoundController(HandleRoundWon, timer,initialTime);
         }
 
         private void Update()
