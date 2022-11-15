@@ -9,20 +9,31 @@ namespace round
     {
         private DeathMatchRoundState _roundState;
         private RoundWonEvent _roundWonEvent;
+        private Timer _timer;
+        private float _roundTimeInSeconds;
 
-        public DeathMatchRoundController(UnityAction<RoundState> runWonListener)
+        public DeathMatchRoundController(UnityAction<RoundState> runWonListener, Timer timer, float roundTimeInSeconds)
         {
             _roundState = new DeathMatchRoundState();
             _roundState.DeadPlayers = new List<Player>();
             _roundWonEvent = new RoundWonEvent();
             _roundWonEvent.AddListener(runWonListener);
+            _timer = timer;
+            _roundTimeInSeconds = roundTimeInSeconds;
         }
 
         public void PlayRound(List<Team> teams)
         {
+            if (!_timer.TimerIsRunning)
+            {
+                _timer.TimeRemainingInSeconds = _roundTimeInSeconds;
+                _timer.StartTimer();
+            }
+
             if (CheckTimeElapsed())
             {
-                _roundWonEvent.Invoke(calculateWinner(teams));
+                _roundWonEvent.Invoke(CalculateWinner(teams));
+                _timer.StopTimer();
             }
 
             UpdateState(teams);
@@ -31,7 +42,8 @@ namespace round
             {
                 if (CheckWholeTeamIsDead(team))
                 {
-                    _roundWonEvent.Invoke(calculateWinner(teams));
+                    _roundWonEvent.Invoke(CalculateWinner(teams));
+                    _timer.StopTimer();
                 }
             }
         }
@@ -71,7 +83,7 @@ namespace round
             }
         }
 
-        private RoundState calculateWinner(List<Team> teams)
+        private RoundState CalculateWinner(List<Team> teams)
         {
             Team bestTeam = null;
             int bestScore = 0;
@@ -127,8 +139,7 @@ namespace round
 
         private bool CheckTimeElapsed()
         {
-            // TODO: implement this
-            return false;
+            return _timer.TimeRemainingInSeconds <= 0f;
         }
     }
 }
